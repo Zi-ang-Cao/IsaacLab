@@ -1,4 +1,4 @@
-# Copyright (c) 2022-2024, The Isaac Lab Project Developers.
+# Copyright (c) 2022-2025, The Isaac Lab Project Developers.
 # All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
@@ -26,14 +26,10 @@ Usage:
 
 """
 from .noise_cfg import NoiseCfg  # noqa: F401
-from .noise_cfg import (
-    AdditiveGaussianNoiseCfg,
-    AdditiveUniformNoiseCfg,
-    ConstantBiasNoiseCfg,
-    ConstantNoiseCfg,
-    GaussianNoiseCfg,
-    NoiseModelCfg,
-    NoiseModelWithAdditiveBiasCfg,
-    UniformNoiseCfg,
-)
+from .noise_cfg import ConstantNoiseCfg, GaussianNoiseCfg, NoiseModelCfg, NoiseModelWithAdditiveBiasCfg, UniformNoiseCfg
 from .noise_model import NoiseModel, NoiseModelWithAdditiveBias, constant_noise, gaussian_noise, uniform_noise
+
+# Backward compatibility
+ConstantBiasNoiseCfg = ConstantNoiseCfg
+AdditiveUniformNoiseCfg = UniformNoiseCfg
+AdditiveGaussianNoiseCfg = GaussianNoiseCfg

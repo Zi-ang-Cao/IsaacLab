@@ -1,4 +1,4 @@
-# Copyright (c) 2022-2024, The Isaac Lab Project Developers.
+# Copyright (c) 2022-2025, The Isaac Lab Project Developers.
 # All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
@@ -30,8 +30,8 @@ setup(
     classifiers=[
         "Natural Language :: English",
         "Programming Language :: Python :: 3.10",
-        "Isaac Sim :: 4.0.0",
-        "Isaac Sim :: 2023.1.1",
+        "Isaac Sim :: 4.2.0",
+        "Isaac Sim :: 4.1.0",
     ],
     zip_safe=False,
 )

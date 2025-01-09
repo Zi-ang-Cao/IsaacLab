@@ -1,4 +1,4 @@
-# Copyright (c) 2022-2024, The Isaac Lab Project Developers.
+# Copyright (c) 2022-2025, The Isaac Lab Project Developers.
 # All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
@@ -13,7 +13,7 @@ designed to be modular and can be easily extended to support new functionality.
 from .action_manager import ActionManager, ActionTerm
 from .command_manager import CommandManager, CommandTerm
 from .curriculum_manager import CurriculumManager
-from .event_manager import EventManager, RandomizationManager
+from .event_manager import EventManager
 from .manager_base import ManagerBase, ManagerTermBase
 from .manager_term_cfg import (
     ActionTermCfg,
@@ -23,11 +23,12 @@ from .manager_term_cfg import (
     ManagerTermBaseCfg,
     ObservationGroupCfg,
     ObservationTermCfg,
-    RandomizationTermCfg,
+    RecorderTermCfg,
     RewardTermCfg,
     TerminationTermCfg,
 )
 from .observation_manager import ObservationManager
+from .recorder_manager import DatasetExportMode, RecorderManager, RecorderManagerBaseCfg, RecorderTerm
 from .reward_manager import RewardManager
 from .scene_entity_cfg import SceneEntityCfg
 from .termination_manager import TerminationManager

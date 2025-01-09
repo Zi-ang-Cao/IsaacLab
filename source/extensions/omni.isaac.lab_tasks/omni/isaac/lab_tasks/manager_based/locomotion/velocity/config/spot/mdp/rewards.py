@@ -1,8 +1,13 @@
-# Copyright (c) 2022-2024, The Isaac Lab Project Developers.
+# Copyright (c) 2022-2025, The Isaac Lab Project Developers.
 # All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+"""This sub-module contains the reward functions that can be used for Spot's locomotion task.
+
+The functions can be passed to the :class:`omni.isaac.lab.managers.RewardTermCfg` object to
+specify the reward function and its parameters.
+"""
 
 from __future__ import annotations
 
@@ -18,7 +23,9 @@ if TYPE_CHECKING:
     from omni.isaac.lab.managers import RewardTermCfg
 
 
-# -- Task Rewards
+##
+# Task Rewards
+##
 
 
 def air_time_reward(
@@ -28,7 +35,7 @@ def air_time_reward(
     mode_time: float,
     velocity_threshold: float,
 ) -> torch.Tensor:
-    """Reward longer feet air and contact time"""
+    """Reward longer feet air and contact time."""
     # extract the used quantities (to enable type-hinting)
     contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
     asset: Articulation = env.scene[asset_cfg.name]
@@ -42,7 +49,7 @@ def air_time_reward(
     t_min = torch.clip(t_max, max=mode_time)
     stance_cmd_reward = torch.clip(current_contact_time - current_air_time, -mode_time, mode_time)
     cmd = torch.norm(env.command_manager.get_command("base_velocity"), dim=1).unsqueeze(dim=1).expand(-1, 4)
-    body_vel = torch.linalg.norm(asset.data.root_lin_vel_b[:, :2], dim=1).unsqueeze(dim=1).expand(-1, 4)
+    body_vel = torch.linalg.norm(asset.data.root_com_lin_vel_b[:, :2], dim=1).unsqueeze(dim=1).expand(-1, 4)
     reward = torch.where(
         torch.logical_or(cmd > 0.0, body_vel > velocity_threshold),
         torch.where(t_max < mode_time, t_min, 0),
@@ -57,7 +64,7 @@ def base_angular_velocity_reward(env: ManagerBasedRLEnv, asset_cfg: SceneEntityC
     asset: RigidObject = env.scene[asset_cfg.name]
     # compute the error
     target = env.command_manager.get_command("base_velocity")[:, 2]
-    ang_vel_error = torch.linalg.norm((target - asset.data.root_ang_vel_b[:, 2]).unsqueeze(1), dim=1)
+    ang_vel_error = torch.linalg.norm((target - asset.data.root_com_ang_vel_b[:, 2]).unsqueeze(1), dim=1)
     return torch.exp(-ang_vel_error / std)
 
 
@@ -69,7 +76,7 @@ def base_linear_velocity_reward(
     asset: RigidObject = env.scene[asset_cfg.name]
     # compute the error
     target = env.command_manager.get_command("base_velocity")[:, :2]
-    lin_vel_error = torch.linalg.norm((target - asset.data.root_lin_vel_b[:, :2]), dim=1)
+    lin_vel_error = torch.linalg.norm((target - asset.data.root_com_lin_vel_b[:, :2]), dim=1)
     # fixed 1.0 multiple for tracking below the ramp_at_vel value, then scale by the rate above
     vel_cmd_magnitude = torch.linalg.norm(target, dim=1)
     velocity_scaling_multiple = torch.clamp(1.0 + ramp_rate * (vel_cmd_magnitude - ramp_at_vel), min=1.0)
@@ -141,10 +148,14 @@ class GaitReward(ManagerTermBase):
         async_reward = async_reward_0 * async_reward_1 * async_reward_2 * async_reward_3
         # only enforce gait if cmd > 0
         cmd = torch.norm(env.command_manager.get_command("base_velocity"), dim=1)
-        body_vel = torch.linalg.norm(self.asset.data.root_lin_vel_b[:, :2], dim=1)
+        body_vel = torch.linalg.norm(self.asset.data.root_com_lin_vel_b[:, :2], dim=1)
         return torch.where(
             torch.logical_or(cmd > 0.0, body_vel > self.velocity_threshold), sync_reward * async_reward, 0.0
         )
+
+    """
+    Helper functions.
+    """
 
     def _sync_reward_func(self, foot_0: int, foot_1: int) -> torch.Tensor:
         """Reward synchronization of two feet."""
@@ -171,13 +182,17 @@ def foot_clearance_reward(
 ) -> torch.Tensor:
     """Reward the swinging feet for clearing a specified height off the ground"""
     asset: RigidObject = env.scene[asset_cfg.name]
-    foot_z_target_error = torch.square(asset.data.body_pos_w[:, asset_cfg.body_ids, 2] - target_height)
-    foot_velocity_tanh = torch.tanh(tanh_mult * torch.norm(asset.data.body_lin_vel_w[:, asset_cfg.body_ids, :2], dim=2))
+    foot_z_target_error = torch.square(asset.data.body_link_pos_w[:, asset_cfg.body_ids, 2] - target_height)
+    foot_velocity_tanh = torch.tanh(
+        tanh_mult * torch.norm(asset.data.body_com_lin_vel_w[:, asset_cfg.body_ids, :2], dim=2)
+    )
     reward = foot_z_target_error * foot_velocity_tanh
     return torch.exp(-torch.sum(reward, dim=1) / std)
 
 
-# -- Regularization Penalties
+##
+# Regularization Penalties
+##
 
 
 def action_smoothness_penalty(env: ManagerBasedRLEnv) -> torch.Tensor:
@@ -204,8 +219,8 @@ def base_motion_penalty(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg) -> to
     """Penalize base vertical and roll/pitch velocity"""
     # extract the used quantities (to enable type-hinting)
     asset: RigidObject = env.scene[asset_cfg.name]
-    return 0.8 * torch.square(asset.data.root_lin_vel_b[:, 2]) + 0.2 * torch.sum(
-        torch.abs(asset.data.root_ang_vel_b[:, :2]), dim=1
+    return 0.8 * torch.square(asset.data.root_com_lin_vel_b[:, 2]) + 0.2 * torch.sum(
+        torch.abs(asset.data.root_com_ang_vel_b[:, :2]), dim=1
     )
 
 
@@ -230,7 +245,7 @@ def foot_slip_penalty(
     # check if contact force is above threshold
     net_contact_forces = contact_sensor.data.net_forces_w_history
     is_contact = torch.max(torch.norm(net_contact_forces[:, :, sensor_cfg.body_ids], dim=-1), dim=1)[0] > threshold
-    foot_planar_velocity = torch.linalg.norm(asset.data.body_lin_vel_w[:, asset_cfg.body_ids, :2], dim=2)
+    foot_planar_velocity = torch.linalg.norm(asset.data.body_com_lin_vel_w[:, asset_cfg.body_ids, :2], dim=2)
 
     reward = is_contact * foot_planar_velocity
     return torch.sum(reward, dim=1)
@@ -250,7 +265,7 @@ def joint_position_penalty(
     # extract the used quantities (to enable type-hinting)
     asset: Articulation = env.scene[asset_cfg.name]
     cmd = torch.linalg.norm(env.command_manager.get_command("base_velocity"), dim=1)
-    body_vel = torch.linalg.norm(asset.data.root_lin_vel_b[:, :2], dim=1)
+    body_vel = torch.linalg.norm(asset.data.root_com_lin_vel_b[:, :2], dim=1)
     reward = torch.linalg.norm((asset.data.joint_pos - asset.data.default_joint_pos), dim=1)
     return torch.where(torch.logical_or(cmd > 0.0, body_vel > velocity_threshold), reward, stand_still_scale * reward)
 

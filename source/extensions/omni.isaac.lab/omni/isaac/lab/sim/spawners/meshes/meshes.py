@@ -1,4 +1,4 @@
-# Copyright (c) 2022-2024, The Isaac Lab Project Developers.
+# Copyright (c) 2022-2025, The Isaac Lab Project Developers.
 # All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
@@ -300,8 +300,6 @@ def _spawn_mesh_geom_from_mesh(
     mesh_prim = prim_utils.create_prim(
         mesh_prim_path,
         prim_type="Mesh",
-        translation=translation,
-        orientation=orientation,
         scale=scale,
         attributes={
             "points": mesh.vertices,

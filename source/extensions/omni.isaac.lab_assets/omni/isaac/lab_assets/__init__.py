@@ -1,4 +1,4 @@
-# Copyright (c) 2022-2024, The Isaac Lab Project Developers.
+# Copyright (c) 2022-2025, The Isaac Lab Project Developers.
 # All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
@@ -29,6 +29,7 @@ __version__ = ISAACLAB_ASSETS_METADATA["package"]["version"]
 from .allegro import *
 from .ant import *
 from .anymal import *
+from .cart_double_pendulum import *
 from .cartpole import *
 from .franka import *
 from .humanoid import *
